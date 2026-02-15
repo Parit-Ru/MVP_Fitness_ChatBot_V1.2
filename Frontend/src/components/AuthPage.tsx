@@ -9,6 +9,8 @@ import {
 } from "firebase/auth";
 import { auth } from "../firebase";
 import { createUserDoc } from "../services/userService";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+
 
 export function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,6 +19,25 @@ export function AuthPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // สร้าง user doc ใน Firestore (ถ้ายังไม่มี)
+      await createUserDoc(user);
+
+      alert("Login with Google สำเร็จ 🎉");
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,21 +131,19 @@ export function AuthPage() {
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setIsLogin(true)}
-            className={`flex-1 py-3 rounded-xl ${
-              isLogin
-                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
-                : "bg-white/60 hover:bg-white/80"
-            }`}
+            className={`flex-1 py-3 rounded-xl ${isLogin
+              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
+              : "bg-white/60 hover:bg-white/80"
+              }`}
           >
             Login
           </button>
           <button
             onClick={() => setIsLogin(false)}
-            className={`flex-1 py-3 rounded-xl ${
-              !isLogin
-                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
-                : "bg-white/60 hover:bg-white/80"
-            }`}
+            className={`flex-1 py-3 rounded-xl ${!isLogin
+              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
+              : "bg-white/60 hover:bg-white/80"
+              }`}
           >
             Sign Up
           </button>
@@ -155,8 +174,8 @@ export function AuthPage() {
             type="password"
             placeholder={
               isLogin
-              ? "Password"
-              : "Password (Enter at least 9 characters)"
+                ? "Password"
+                : "Password (Enter at least 9 characters)"
             }
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -183,6 +202,30 @@ export function AuthPage() {
           >
             {loading ? "Processing..." : isLogin ? "Login" : "Sign Up"}
           </button>
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-2 text-gray-500">
+                or continue with
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 bg-white border py-3 rounded-xl shadow hover:bg-gray-50 transition-all"
+          >
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              alt="Google"
+              className="w-5 h-5"
+            />
+            Continue with Google
+          </button>
+
         </form>
       </div>
     </div>
