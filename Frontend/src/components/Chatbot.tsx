@@ -70,7 +70,7 @@ export function Chatbot({
   // const [isThinking, setIsThinking] = useState(false);// ai กำลังคิด
 
   const { user, loading } = useContext(AuthContext);
-
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [chatMessages, setChatMessages] = useState<Message[]>([]); // new
   const [planMessages, setPlanMessages] = useState<Message[]>([]); // new
   const [inputText, setInputText] = useState("");
@@ -100,6 +100,13 @@ export function Chatbot({
     "How many minutes per day can you exercise?",
     "How many workout days per week?",
     "Additional Preference?",
+  ];
+
+  const tips = [
+    "Tip: Use the log to track your daily water intake!",
+    "Tip: Consistency beats intensity every single time.",
+    "Tip: Click the 'Stats' tab to see your weekly progress.",
+    "Tip: Don't forget to stretch after your HIIT sessions!",
   ];
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -189,44 +196,61 @@ export function Chatbot({
 
     // --- ส่วนที่เพิ่มเพื่อรีเซตค่าเมื่อสลับโหมด ---
     setPlanStep(0);
-    setFormData({ age: "", weight: "", height: "", goal: "", injury: "", time: "", daysPerWeek: "", pref: "" });
+    setFormData({
+      age: "",
+      weight: "",
+      height: "",
+      goal: "",
+      injury: "",
+      time: "",
+      daysPerWeek: "",
+      pref: "",
+    });
     // ---------------------------------------
 
     if (toggled) {
-        modeText = "Switched to Chat Mode.";
+      modeText = "Switched to Chat Mode.";
     } else if (activePlan.days && activePlan.days.length > 0) {
+      modeText = `Your plan is already created please switch to a blank plan!".`;
+      setTimeout(() => {
+        setToggled(true);
+      }, 5000);
+    } else {
+      if (!activePlan) {
+        modeText = "⚠️ Set an active plan first.";
+      } else if (activePlan.days && activePlan.days.length > 0) {
         modeText = `Your plan is already created please switch to a blank plan!".`;
         setTimeout(() => {
-            setToggled(true); 
+          setToggled(true);
         }, 5000);
-    } else {
-        if (!activePlan) {
-            modeText = "⚠️ Set an active plan first.";
-        } else if (activePlan.days && activePlan.days.length > 0) {
-            modeText = `Your plan is already created please switch to a blank plan!".`;
-            setTimeout(() => {
-                setToggled(true);
-            }, 5000);
-        } else {
-            modeText = `Plan Mode: Filling "${activePlan.name}". ${questions[0]}`;
-        }
+      } else {
+        modeText = `Plan Mode: Filling "${activePlan.name}". ${questions[0]}`;
+      }
     }
 
-    setCurrentMessages(prev => {
-        const filteredMessages = prev.filter(m => m.senderRole !== "system");
-        return [
-            ...filteredMessages,
-            {
-                id: `system-${Date.now()}`,
-                text: modeText,
-                senderRole: "system",
-                senderId: "system",
-                senderName: "System",
-                timestamp: new Date(),
-            }
-        ];
+    setCurrentMessages((prev) => {
+      const filteredMessages = prev.filter((m) => m.senderRole !== "system");
+      return [
+        ...filteredMessages,
+        {
+          id: `system-${Date.now()}`,
+          text: modeText,
+          senderRole: "system",
+          senderId: "system",
+          senderName: "System",
+          timestamp: new Date(),
+        },
+      ];
     });
-}, [toggled]);
+  }, [toggled]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % tips.length);
+    }, 8000); // Cycles every 4 seconds
+
+    return () => clearInterval(timer);
+  }, []); // Empty dependency array means this runs once on mount
 
   const addBotMessage = (text: string) => {
     setCurrentMessages((prev) => {
@@ -516,8 +540,8 @@ export function Chatbot({
         </div>
         <div>
           <h3 className="text-lg font-bold">FitPro AI Coach</h3>
-          <p className="text-sm text-indigo-100">
-            Your personalized fitness assistant
+          <p className="text-sm text-indigo-100 transition-all duration-500 ease-in-out">
+            {tips[currentIndex]}
           </p>
         </div>
         <div style={{ marginLeft: "auto", textAlign: "center" }}>
