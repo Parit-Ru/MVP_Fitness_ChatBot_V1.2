@@ -1,14 +1,31 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, Dumbbell, LogOut, X, List, User, BookOpen, MoreVertical } from 'lucide-react';
-import { ExercisePlans } from './ExercisePlans';
-import { Chatbot } from './Chatbot';
-import { ProfilePage } from './ProfilePage';
-import { Exercise } from './ExercisePlans';
+import {
+  MessageCircle,
+  Dumbbell,
+  LogOut,
+  X,
+  List,
+  User,
+  BookOpen,
+  MoreVertical,
+} from "lucide-react";
+import { ExercisePlans } from "./ExercisePlans";
+import { Chatbot } from "./Chatbot";
+import { ProfilePage } from "./ProfilePage";
+import { Exercise } from "./ExercisePlans";
 import { getExercises } from "../services/exerciseService";
 import { WorkoutLibrary } from "./WorkoutLibrary";
 import { ExerciseDetail } from "./ExerciseDetail";
-import { PlanDetail } from './PlanDetail';
-import { doc, collection, query, setDoc, serverTimestamp, onSnapshot, limit } from "firebase/firestore";
+import { PlanDetail } from "./PlanDetail";
+import {
+  doc,
+  collection,
+  query,
+  setDoc,
+  serverTimestamp,
+  onSnapshot,
+  limit,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import { Settings } from 'lucide-react'; // 1. เพิ่มไอคอน Settings
 import { SettingsPage } from './SettingsPage'; // 2. นำเข้าไฟล์ที่จะสร้างใหม่
@@ -25,7 +42,9 @@ interface WorkoutStreak {
 
 export function Dashboard({ user, onLogout }: DashboardProps) {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
+    null,
+  );
   const [selectedPlanName, setSelectedPlanName] = useState<string>("");
 
   const [view, setView] = useState<'chat' | 'plans' | 'profile' | 'workouts' | 'exercise' | 'settings'>('chat');
@@ -38,7 +57,7 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
     const q = query(collection(db, "exercises"), limit(20));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const exercises = snapshot.docs.map(doc => {
+      const exercises = snapshot.docs.map((doc) => {
         const data = doc.data();
         return {
           id: doc.id,
@@ -63,32 +82,46 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
     return () => unsubscribe();
   }, []);
 
+  const handleAddManyExercises = (newExercises: Exercise[]) => {
+    setExerciseLibrary((prev) => {
+      // Create a map of existing IDs for quick lookup
+      const existingIds = new Set(prev.map((ex) => ex.id));
+      // Only add exercises that aren't already in the list
+      const uniqueNew = newExercises.filter((ex) => !existingIds.has(ex.id));
+      return [...prev, ...uniqueNew];
+    });
+  };
+
   const handleWorkoutComplete = async (date: string) => {
     if (!user.uid) return;
 
     try {
-      const workoutRef = doc(db, 'users', user.uid, 'workouts', date);
-      await setDoc(workoutRef, {
-        completed: true,
-        timestamp: serverTimestamp()
-      }, { merge: true });
+      const workoutRef = doc(db, "users", user.uid, "workouts", date);
+      await setDoc(
+        workoutRef,
+        {
+          completed: true,
+          timestamp: serverTimestamp(),
+        },
+        { merge: true },
+      );
     } catch (error) {
       console.error("Error saving workout:", error);
     }
   };
 
   const handleUpdateExercise = (exercise: Exercise) => {
-    setExerciseLibrary(prev =>
-      prev.map(ex => ex.id === exercise.id ? exercise : ex)
+    setExerciseLibrary((prev) =>
+      prev.map((ex) => (ex.id === exercise.id ? exercise : ex)),
     );
   };
 
   const handleDeleteExercise = (exerciseId: string) => {
-    setExerciseLibrary(prev => prev.filter(ex => ex.id !== exerciseId));
+    setExerciseLibrary((prev) => prev.filter((ex) => ex.id !== exerciseId));
   };
 
   const handleAddExercise = (exercise: Exercise) => {
-    setExerciseLibrary(prev => [...prev, exercise]);
+    setExerciseLibrary((prev) => [...prev, exercise]);
   };
 
   if (selectedExercise) {
@@ -101,7 +134,7 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
           onBack={() => setSelectedExercise(null)}
           onComplete={() => {
             setSelectedExercise(null);
-            setView('profile');
+            setView("profile");
           }}
         />
       </div>
@@ -121,18 +154,22 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex flex-col">
-
       <>
         <header className="glass-effect border-b border-white/20 shadow-lg relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-
             {/* Logo */}
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
                 <Dumbbell className="w-7 h-7 text-white" />
-
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"> FitPro </h1> <p className="text-xs text-gray-600"> Your fitness journey starts here </p>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                {" "}
+                FitPro{" "}
+              </h1>{" "}
+              <p className="text-xs text-gray-600">
+                {" "}
+                Your fitness journey starts here{" "}
+              </p>
               <div className="hidden sm:block">
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   FitPro
@@ -145,46 +182,61 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
-
               <button
-                onClick={() => { setView('chat'); setSelectedPlanId(null); }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${view === 'chat'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'text-gray-700 hover:bg-white/60'
-                  }`}
+                onClick={() => {
+                  setView("chat");
+                  setSelectedPlanId(null);
+                }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                  view === "chat"
+                    ? "bg-indigo-600 text-white shadow-lg"
+                    : "text-gray-700 hover:bg-white/60"
+                }`}
               >
                 <MessageCircle className="w-5 h-5" />
                 Chat
               </button>
 
               <button
-                onClick={() => { setView('plans'); setSelectedPlanId(null); }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${view === 'plans'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'text-gray-700 hover:bg-white/60'
-                  }`}
+                onClick={() => {
+                  setView("plans");
+                  setSelectedPlanId(null);
+                }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                  view === "plans"
+                    ? "bg-indigo-600 text-white shadow-lg"
+                    : "text-gray-700 hover:bg-white/60"
+                }`}
               >
                 <List className="w-5 h-5" />
                 My Plans
               </button>
 
               <button
-                onClick={() => { setView('profile'); setSelectedPlanId(null); }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${view === 'profile'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'text-gray-700 hover:bg-white/60'
-                  }`}
+                onClick={() => {
+                  setView("profile");
+                  setSelectedPlanId(null);
+                }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                  view === "profile"
+                    ? "bg-indigo-600 text-white shadow-lg"
+                    : "text-gray-700 hover:bg-white/60"
+                }`}
               >
                 <User className="w-5 h-5" />
                 Profile
               </button>
 
               <button
-                onClick={() => { setView('workouts'); setSelectedPlanId(null); }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${view === 'workouts'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'text-gray-700 hover:bg-white/60'
-                  }`}
+                onClick={() => {
+                  setView("workouts");
+                  setSelectedPlanId(null);
+                }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                  view === "workouts"
+                    ? "bg-indigo-600 text-white shadow-lg"
+                    : "text-gray-700 hover:bg-white/60"
+                }`}
               >
                 <BookOpen className="w-5 h-5" />
                 Workouts
@@ -235,14 +287,17 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
               <MobileItem label="Logout" danger onClick={onLogout} />
             </div>
           )}
-
         </header>
 
         <main className="flex-1 flex flex-col">
-          {view === 'chat' ? (
+          {view === "chat" ? (
             <div className="flex-1 flex items-center justify-center p-4">
               <div className="w-full max-w-4xl h-[calc(100vh-140px)] bg-white rounded-2xl shadow-xl flex flex-col">
-                <Chatbot userName={user.name} availableExercises={exerciseLibrary} />
+                <Chatbot
+                  userName={user.name}
+                  availableExercises={exerciseLibrary}
+                  onNewExercisesFound={handleAddManyExercises}
+                />
               </div>
             </div>
           ) : view === 'settings' ? (
@@ -259,9 +314,10 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
                     ...exerciseFromPlan, // This spreads existing fields, but explicit mapping is safer for naming mismatches
                     Title: exerciseFromPlan.Title || exerciseFromPlan.name,
                     Desc: exerciseFromPlan.Desc || exerciseFromPlan.desc,
-                    BodyPart: exerciseFromPlan.BodyPart || exerciseFromPlan.bodyPart,
+                    BodyPart:
+                      exerciseFromPlan.BodyPart || exerciseFromPlan.bodyPart,
                     videoURL: exerciseFromPlan.videoURL, // <--- Add this line
-                    id: exerciseFromPlan.id || `ex_${Date.now()}`
+                    id: exerciseFromPlan.id || `ex_${Date.now()}`,
                   } as Exercise;
 
                   setSelectedExercise(exerciseToView);
@@ -269,7 +325,7 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
                 }}
               />
             </div>
-          ) : view === 'profile' ? (
+          ) : view === "profile" ? (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
               <ProfilePage userId={user.uid} userName={user.name} />
             </div>
@@ -293,8 +349,9 @@ function MobileItem({ label, onClick, danger }: any) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${danger ? 'text-red-600 hover:bg-red-50' : 'text-gray-700'
-        }`}
+      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+        danger ? "text-red-600 hover:bg-red-50" : "text-gray-700"
+      }`}
     >
       {label}
     </button>

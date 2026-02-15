@@ -6,11 +6,11 @@ import {
   updateProfile,
   sendEmailVerification,
   signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 import { auth } from "../firebase";
 import { createUserDoc } from "../services/userService";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-
 
 export function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -57,7 +57,6 @@ export function AuthPage() {
       return;
     }
 
-
     try {
       setLoading(true);
 
@@ -66,7 +65,7 @@ export function AuthPage() {
         const userCredential = await signInWithEmailAndPassword(
           auth,
           email,
-          password
+          password,
         );
 
         if (!userCredential.user.emailVerified) {
@@ -83,7 +82,7 @@ export function AuthPage() {
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           email,
-          password
+          password,
         );
 
         // อัปเดตชื่อ Profile
@@ -131,19 +130,21 @@ export function AuthPage() {
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setIsLogin(true)}
-            className={`flex-1 py-3 rounded-xl ${isLogin
-              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
-              : "bg-white/60 hover:bg-white/80"
-              }`}
+            className={`flex-1 py-3 rounded-xl ${
+              isLogin
+                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
+                : "bg-white/60 hover:bg-white/80"
+            }`}
           >
             Login
           </button>
           <button
             onClick={() => setIsLogin(false)}
-            className={`flex-1 py-3 rounded-xl ${!isLogin
-              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
-              : "bg-white/60 hover:bg-white/80"
-              }`}
+            className={`flex-1 py-3 rounded-xl ${
+              !isLogin
+                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
+                : "bg-white/60 hover:bg-white/80"
+            }`}
           >
             Sign Up
           </button>
@@ -173,9 +174,7 @@ export function AuthPage() {
           <input
             type="password"
             placeholder={
-              isLogin
-                ? "Password"
-                : "Password (Enter at least 9 characters)"
+              isLogin ? "Password" : "Password (Enter at least 9 characters)"
             }
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -225,7 +224,6 @@ export function AuthPage() {
             />
             Continue with Google
           </button>
-
         </form>
       </div>
     </div>
