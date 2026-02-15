@@ -1,8 +1,16 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Flame, Repeat, Clock, Play, Pause, RotateCcw } from 'lucide-react';
-import { Exercise } from './ExercisePlans';
-import { db } from '../firebase'; 
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useState, useEffect } from "react";
+import {
+  ArrowLeft,
+  Flame,
+  Repeat,
+  Clock,
+  Play,
+  Pause,
+  RotateCcw,
+} from "lucide-react";
+import { Exercise } from "./ExercisePlans";
+import { db } from "../firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 interface ExerciseDetailProps {
   exercise: Exercise;
@@ -12,15 +20,21 @@ interface ExerciseDetailProps {
   userId: string; // ✅ เพิ่ม userId เข้ามาใน Props
 }
 
-const TEST_YOUTUBE_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+const TEST_YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
 const getYouTubeID = (url: string) => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+  return match && match[2].length === 11 ? match[2] : null;
 };
 
-export function ExerciseDetail({ exercise, planName, onBack, onComplete, userId }: ExerciseDetailProps) {
+export function ExerciseDetail({
+  exercise,
+  planName,
+  onBack,
+  onComplete,
+  userId,
+}: ExerciseDetailProps) {
   // ✅ ใส่ตรงนี้เลย
 
   // console.log(exercise)
@@ -54,50 +68,51 @@ export function ExerciseDetail({ exercise, planName, onBack, onComplete, userId 
   // };
 
   // Estimate time for rep-based exercises
-const estimateRepTime = (reps: string | number | undefined | null): number => {
-  if (reps == null) return 60;
+  const estimateRepTime = (
+    reps: string | number | undefined | null,
+  ): number => {
+    if (reps == null) return 60;
 
-  const repsStr = String(reps); // ⭐ จุดสำคัญ
-  const match = repsStr.match(/(\d+)/);
+    const repsStr = String(reps); // ⭐ จุดสำคัญ
+    const match = repsStr.match(/(\d+)/);
 
-  if (!match) return 60; // default 60 seconds
+    if (!match) return 60; // default 60 seconds
 
-  const repCount = parseInt(match[1], 10);
-  return Math.max(repCount * 0, 0); // 3 sec/rep, ขั้นต่ำ 30 วิ
-};
+    const repCount = parseInt(match[1], 10);
+    return Math.max(repCount * 3, 30); // 3 sec/rep, ขั้นต่ำ 30 วิ
+  };
 
-
-  const setDurationSeconds = hasTimedSets 
+  const setDurationSeconds = hasTimedSets
     ? parseDuration(exercise.duration)
     : estimateRepTime(exercise.reps);
 
   const [timeRemaining, setTimeRemaining] = useState(setDurationSeconds);
 
   useEffect(() => {
-  // Use ReturnType to automatically get the correct type for your environment
-  let interval: ReturnType<typeof setInterval> | null = null;
+    // Use ReturnType to automatically get the correct type for your environment
+    let interval: ReturnType<typeof setInterval> | null = null;
 
-  if (isTimerRunning && !isCompleted && timeRemaining > 0) {
-    interval = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          setIsTimerRunning(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }
+    if (isTimerRunning && !isCompleted && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            setIsTimerRunning(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
 
-  return () => {
-    if (interval) clearInterval(interval);
-  };
-}, [isTimerRunning, isCompleted, timeRemaining]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerRunning, isCompleted, timeRemaining]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   const handleStartPause = () => {
@@ -122,45 +137,49 @@ const estimateRepTime = (reps: string | number | undefined | null): number => {
     }
   };
 
-// ในไฟล์ ExerciseDetail.tsx
-const handleMarkComplete = async () => {
-  if (!userId || !exercise?.Title) return;
+  // ในไฟล์ ExerciseDetail.tsx
+  const handleMarkComplete = async () => {
+    if (!userId || !exercise?.Title) return;
 
-  try {
-    // ✅ This forces the date to be calculated based on Thailand Timezone
-    // regardless of the user's device settings.
-    const thailandDate = new Date().toLocaleDateString('en-CA', {
-      timeZone: 'Asia/Bangkok',
-    }); 
-    // Result format: "2026-02-15" (en-CA gives YYYY-MM-DD)
+    try {
+      // ✅ This forces the date to be calculated based on Thailand Timezone
+      // regardless of the user's device settings.
+      const thailandDate = new Date().toLocaleDateString("en-CA", {
+        timeZone: "Asia/Bangkok",
+      });
+      // Result format: "2026-02-15" (en-CA gives YYYY-MM-DD)
 
-    const workoutRef = doc(db, 'users', userId, 'workouts', thailandDate);
+      const workoutRef = doc(db, "users", userId, "workouts", thailandDate);
 
-    await setDoc(workoutRef, {
-      completed: true,
-      timestamp: serverTimestamp(), // Firestore server time (UTC) for precise ordering
-      localDate: thailandDate,       // Your "Streak Date" (Thailand)
-      exerciseName: exercise.Title,
-      planName: planName,
-    }, { merge: true });
+      await setDoc(
+        workoutRef,
+        {
+          completed: true,
+          timestamp: serverTimestamp(), // Firestore server time (UTC) for precise ordering
+          localDate: thailandDate, // Your "Streak Date" (Thailand)
+          exerciseName: exercise.Title,
+          planName: planName,
+        },
+        { merge: true },
+      );
 
-    // console.log(`Saved to Thailand Date: ${thailandDate}`);
-    if (onComplete) onComplete();
-    onBack();
-  } catch (error) {
-    console.error(error);
-  }
-};
-
+      // console.log(`Saved to Thailand Date: ${thailandDate}`);
+      if (onComplete) onComplete();
+      onBack();
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   // Check if current set is complete
   const isSetComplete = timeRemaining === 0;
 
   // Calculate progress percentage
   // ✅ แก้เป็น (ดักกรณี setDurationSeconds เป็น 0 หรือ NaN)
-const progressPercentage = setDurationSeconds > 0 
-  ? ((setDurationSeconds - timeRemaining) / setDurationSeconds) * 100 
-  : 0;
+  const progressPercentage =
+    setDurationSeconds > 0
+      ? ((setDurationSeconds - timeRemaining) / setDurationSeconds) * 100
+      : 0;
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -177,11 +196,13 @@ const progressPercentage = setDurationSeconds > 0
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 text-white">
           <p className="text-indigo-100 mb-2">{planName}</p>
           <h1 className="text-4xl font-bold mb-4">{exercise.Title}</h1>
-          
+
           <div className="flex items-center gap-6 text-indigo-100">
             <div className="flex items-center gap-2">
               <Repeat className="w-5 h-5" />
-              <span>{exercise.sets} sets × {exercise.reps}</span>
+              <span>
+                {exercise.sets} sets × {exercise.reps}
+              </span>
             </div>
             {exercise.duration && (
               <div className="flex items-center gap-2">
@@ -206,9 +227,13 @@ const progressPercentage = setDurationSeconds > 0
                 </h3>
                 {hasTimedSets ? (
                   <>
-                    <div className={`text-6xl font-bold mb-2 transition-colors ${
-                      timeRemaining <= 5 && timeRemaining > 0 ? 'text-red-600' : 'text-indigo-600'
-                    }`}>
+                    <div
+                      className={`text-6xl font-bold mb-2 transition-colors ${
+                        timeRemaining <= 5 && timeRemaining > 0
+                          ? "text-red-600"
+                          : "text-indigo-600"
+                      }`}
+                    >
                       {formatTime(timeRemaining)}
                     </div>
                     <p className="text-sm text-gray-600">
@@ -217,9 +242,13 @@ const progressPercentage = setDurationSeconds > 0
                   </>
                 ) : (
                   <>
-                    <div className={`text-6xl font-bold mb-2 transition-colors ${
-                      timeRemaining <= 5 && timeRemaining > 0 ? 'text-red-600' : 'text-indigo-600'
-                    }`}>
+                    <div
+                      className={`text-6xl font-bold mb-2 transition-colors ${
+                        timeRemaining <= 5 && timeRemaining > 0
+                          ? "text-red-600"
+                          : "text-indigo-600"
+                      }`}
+                    >
                       {formatTime(timeRemaining)}
                     </div>
                     <p className="text-sm text-gray-600">
@@ -244,7 +273,9 @@ const progressPercentage = setDurationSeconds > 0
                   ) : (
                     <>
                       <Play className="w-5 h-5" />
-                      {timeRemaining === setDurationSeconds ? 'Start' : 'Resume'}
+                      {timeRemaining === setDurationSeconds
+                        ? "Start"
+                        : "Resume"}
                     </>
                   )}
                 </button>
@@ -262,7 +293,7 @@ const progressPercentage = setDurationSeconds > 0
                     onClick={handleNextSet}
                     className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium animate-pulse"
                   >
-                    {currentSet < totalSets ? 'Next' : 'Finish'}
+                    {currentSet < totalSets ? "Next" : "Finish"}
                   </button>
                 )}
               </div>
@@ -272,10 +303,12 @@ const progressPercentage = setDurationSeconds > 0
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all duration-300 ${
-                      timeRemaining <= 5 && timeRemaining > 0 ? 'bg-red-600' : 'bg-indigo-600'
+                      timeRemaining <= 5 && timeRemaining > 0
+                        ? "bg-red-600"
+                        : "bg-indigo-600"
                     }`}
                     style={{
-                      width: `${Math.min(progressPercentage, 100)}%`
+                      width: `${Math.min(progressPercentage, 100)}%`,
                     }}
                   ></div>
                 </div>
@@ -287,8 +320,10 @@ const progressPercentage = setDurationSeconds > 0
           )}
 
           {/* Video Tutorial */}
-           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-3">Video Tutorial</h3>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Video Tutorial
+            </h3>
             {videoToDisplay ? (
               <div className="rounded-lg overflow-hidden aspect-video shadow-lg border border-gray-200">
                 <iframe
@@ -305,7 +340,11 @@ const progressPercentage = setDurationSeconds > 0
               <div className="bg-gray-100 rounded-lg aspect-video flex items-center justify-center">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-8 h-8 text-white"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   </div>
@@ -317,7 +356,9 @@ const progressPercentage = setDurationSeconds > 0
 
           {/* Description */}
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">Description</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              Description
+            </h2>
             <p className="text-gray-700 leading-relaxed">{exercise.Desc}</p>
           </div>
 
@@ -330,7 +371,9 @@ const progressPercentage = setDurationSeconds > 0
                   <span className="font-bold">🛠️</span>
                 </div>
                 <p className="text-xl text-gray-800 font-medium">
-                  {exercise.equipment || exercise.Equipment || "No Equipment Required"}
+                  {exercise.equipment ||
+                    exercise.Equipment ||
+                    "No Equipment Required"}
                 </p>
               </div>
             </div>
@@ -355,9 +398,13 @@ const progressPercentage = setDurationSeconds > 0
           {isCompleted && (
             <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 text-center">
               <div className="text-5xl mb-4">🎉</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Great Job!</h3>
-              <p className="text-gray-600 mb-6">You completed all {totalSets} sets!</p>
-              <button 
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Great Job!
+              </h3>
+              <p className="text-gray-600 mb-6">
+                You completed all {totalSets} sets!
+              </p>
+              <button
                 onClick={handleMarkComplete}
                 className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-medium text-lg"
               >

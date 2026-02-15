@@ -103,7 +103,13 @@ export function Chatbot({
   ];
 
   const tips = [
-    "Tip: Use the log to track your daily water intake!",
+    `Tip: You can create your own plan in "Plan Mode!"`,
+    "Tip: You can switch mode on top right corner!",
+    `Tip: You can set Active Plan in "My Plans" tab!`,
+    `Tip: You need to set Active Plan first to create a plan!`,
+    `Tip: Don't forget to log your BMI in "Profile"!`,
+    `Tip: You can view standard exercises in "Workouts"!`,
+    `Tip: You can delete chatbot history in "Settings"!`,
     "Tip: Consistency beats intensity every single time.",
     "Tip: Click the 'Stats' tab to see your weekly progress.",
     "Tip: Don't forget to stretch after your HIIT sessions!",
@@ -540,7 +546,10 @@ export function Chatbot({
         </div>
         <div>
           <h3 className="text-lg font-bold">FitPro AI Coach</h3>
-          <p className="text-sm text-indigo-100 transition-all duration-500 ease-in-out">
+          <p
+            className="text-sm text-indigo-100 transition-all duration-500 ease-in-out"
+            onClick={() => setCurrentIndex((currentIndex + 1) % tips.length)}
+          >
             {tips[currentIndex]}
           </p>
         </div>

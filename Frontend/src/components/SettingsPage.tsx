@@ -115,15 +115,23 @@ export function SettingsPage({ user, onLogout }: SettingsPageProps) {
             <CardDescription>Your current account details</CardDescription>
           </CardHeader>
           <CardContent className="pt-6" style={{ paddingBottom: 20 }}>
-            <div className="flex items-center gap-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 min-w-0">
-              <div className="p-3 bg-indigo-600 rounded-full">
+            {/* เพิ่ม overflow-hidden เพื่อให้แน่ใจว่าไม่มีอะไรแลบออกไปนอก Card */}
+            <div className="flex items-center gap-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 min-w-0 overflow-hidden">
+              {/* Icon: ใช้ flex-shrink-0 เพื่อไม่ให้วงกลมโดนเบียดจนเบี้ยว */}
+              <div className="p-3 bg-indigo-600 rounded-full flex-shrink-0">
                 <Mail className="w-5 h-5 text-white" />
               </div>
+
+              {/* Text Container: ต้องมี min-w-0 เพื่อให้ลูกข้างใน truncate ได้ */}
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-gray-500 font-medium">
+                <p className="text-sm text-gray-500 font-medium">   
                   Email Address
                 </p>
-                <p className="text-lg font-semibold text-gray-900 truncate">
+                {/* ใส่ truncate และดูให้แน่ใจว่า block/inline-block */}
+                <p
+                  className="text-lg font-semibold text-gray-900 truncate"
+                  title={user.email}
+                >
                   {user.email}
                 </p>
               </div>
