@@ -1,7 +1,13 @@
 import { useState, useRef, useEffect, useContext } from "react";
 import { Send, Bot } from "lucide-react";
 import { AuthContext } from "./AuthContext";
-import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+  onSnapshot,
+} from "firebase/firestore";
 import { db } from "../firebase";
 
 interface Message {
@@ -36,6 +42,7 @@ export interface Exercise {
 interface ChatbotProps {
   userName: string;
   availableExercises?: Exercise[];
+  onNewExercisesFound?: (exercises: Exercise[]) => void;
 }
 
 const CHAT_API_URL = `${import.meta.env.VITE_API_URL}/api/ai/chat`;
@@ -49,13 +56,17 @@ const StringHelper = {
       .replace(/[^a-z0-9]/g, "") // Removes everything except letters and numbers
       .trim();
   },
-  
+
   isMatch: (a: string, b: string): boolean => {
     return StringHelper.clean(a) === StringHelper.clean(b);
-  }
+  },
 };
 
-export function Chatbot({ userName, availableExercises }: ChatbotProps) {
+export function Chatbot({
+  userName,
+  availableExercises,
+  onNewExercisesFound,
+}: ChatbotProps) {
   // const [isThinking, setIsThinking] = useState(false);// ai กำลังคิด
 
   const { user, loading } = useContext(AuthContext);
@@ -69,7 +80,16 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
   const [activePlan, setActivePlan] = useState<any>(null);
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [planStep, setPlanStep] = useState(0);
-  const [formData, setFormData] = useState({ age: "", weight: "", height: "", goal: "", injury: "", time: "", daysPerWeek: "", pref: "" });
+  const [formData, setFormData] = useState({
+    age: "",
+    weight: "",
+    height: "",
+    goal: "",
+    injury: "",
+    time: "",
+    daysPerWeek: "",
+    pref: "",
+  });
 
   const questions = [
     "\nWhat is your age?",
@@ -79,7 +99,7 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
     "Do you have any injuries? (Type 'none' if not)",
     "How many minutes per day can you exercise?",
     "How many workout days per week?",
-    "Additional Preference?"
+    "Additional Preference?",
   ];
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -102,7 +122,7 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
             data.chatMessages.map((m: any) => ({
               ...m,
               timestamp: new Date(m.timestamp),
-            }))
+            })),
           );
         }
 
@@ -111,7 +131,7 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
             data.planMessages.map((m: any) => ({
               ...m,
               timestamp: new Date(m.timestamp),
-            }))
+            })),
           );
         }
       } else {
@@ -133,20 +153,32 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
 
   useEffect(() => {
     if (!user) return;
-    const unsub = onSnapshot(doc(db, "userPlans", user.uid), async (docSnap) => {
-      const data = docSnap.data();
-      if (!docSnap.exists() || !data?.plans || data.plans.length === 0) {
-        const firstPlan = { id: `plan_${Date.now()}`, name: "MyPlan", difficulty: 'Beginner', days: [] };
-        await setDoc(doc(db, "userPlans", user.uid), {
-          plans: [firstPlan],
-          activePlanId: firstPlan.id
-        }, { merge: true });
-        return;
-      }
-      setAllPlans(data.plans || []);
-      const active = data.plans.find((p: any) => p.id === data.activePlanId);
-      setActivePlan(active || null);
-    });
+    const unsub = onSnapshot(
+      doc(db, "userPlans", user.uid),
+      async (docSnap) => {
+        const data = docSnap.data();
+        if (!docSnap.exists() || !data?.plans || data.plans.length === 0) {
+          const firstPlan = {
+            id: `plan_${Date.now()}`,
+            name: "MyPlan",
+            difficulty: "Beginner",
+            days: [],
+          };
+          await setDoc(
+            doc(db, "userPlans", user.uid),
+            {
+              plans: [firstPlan],
+              activePlanId: firstPlan.id,
+            },
+            { merge: true },
+          );
+          return;
+        }
+        setAllPlans(data.plans || []);
+        const active = data.plans.find((p: any) => p.id === data.activePlanId);
+        setActivePlan(active || null);
+      },
+    );
     return () => unsub();
   }, [user]);
 
@@ -175,7 +207,7 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
   }, [toggled]);
 
   const addBotMessage = (text: string) => {
-    setCurrentMessages(prev => {
+    setCurrentMessages((prev) => {
       const updated = [
         ...prev,
         {
@@ -191,16 +223,15 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
       // ✅ save เฉพาะ bot / user เท่านั้น
       saveChatHistory(
         toggled ? updated : chatMessages,
-        toggled ? planMessages : updated
+        toggled ? planMessages : updated,
       );
 
       return updated;
     });
   };
 
-
   const addSystemMessage = (text: string) => {
-    setCurrentMessages(prev => [
+    setCurrentMessages((prev) => [
       ...prev,
       {
         id: Date.now().toString(),
@@ -209,22 +240,28 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
         senderId: "system",
         senderName: "System",
         timestamp: new Date(),
-      }
+      },
     ]);
   };
 
-
-  const saveChatHistory = async (
-    chatMsgs: Message[],
-    planMsgs: Message[]
-  ) => {
+  const saveChatHistory = async (chatMsgs: Message[], planMsgs: Message[]) => {
     if (!user) return;
 
-    await setDoc(doc(db, "chats", user.uid), {
-      chatMessages: chatMsgs.map(m => ({ ...m, timestamp: m.timestamp.getTime() })),
-      planMessages: planMsgs.map(m => ({ ...m, timestamp: m.timestamp.getTime() })),
-      updatedAt: serverTimestamp()
-    }, { merge: true });
+    await setDoc(
+      doc(db, "chats", user.uid),
+      {
+        chatMessages: chatMsgs.map((m) => ({
+          ...m,
+          timestamp: m.timestamp.getTime(),
+        })),
+        planMessages: planMsgs.map((m) => ({
+          ...m,
+          timestamp: m.timestamp.getTime(),
+        })),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
   }; // new
   const handleSendMessage = async () => {
     if (loading || !user || !inputText.trim()) return;
@@ -289,7 +326,7 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
       senderRole: "user",
       senderId: user.uid,
       senderName: user.displayName || "User",
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     const newMsgs = [...currentMessages, userMsg];
@@ -299,7 +336,7 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
     // Save to Firebase immediately
     saveChatHistory(
       toggled ? newMsgs : chatMessages,
-      toggled ? planMessages : newMsgs
+      toggled ? planMessages : newMsgs,
     );
 
     try {
@@ -309,99 +346,138 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            messages: newMsgs.map(m => ({
+            messages: newMsgs.map((m) => ({
               role: m.senderRole === "user" ? "user" : "assistant",
-              content: m.text
-            }))
-          })
+              content: m.text,
+            })),
+          }),
         });
         const data = await res.json();
         addBotMessage(data.reply);
-
       } else if (activePlan) {
         // --- PLAN MODE ---
         if (activePlan.days.length === 0) {
-          const fieldNames = ["age", "weight", "height", "goal", "injury", "time", "daysPerWeek", "pref"];
-          const updatedFormData = { ...formData, [fieldNames[planStep]]: currentInput };
+          const fieldNames = [
+            "age",
+            "weight",
+            "height",
+            "goal",
+            "injury",
+            "time",
+            "daysPerWeek",
+            "pref",
+          ];
+          const updatedFormData = {
+            ...formData,
+            [fieldNames[planStep]]: currentInput,
+          };
           setFormData(updatedFormData);
 
-        if (planStep < questions.length - 1) {
-          addBotMessage(questions[planStep + 1]);
-          setPlanStep(planStep + 1);
-        } else {
-          addBotMessage("Generating your custom plan using our exercise database... 🏋️‍♂️");
-          const res = await fetch(PLAN_GEN_URL, { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify(updatedFormData) 
-          });
-          // 1. Get names from AI response
-          const result = await res.json();
-          const allAiNames = result.plan.days.flatMap((d: any) => 
-            d.exercises.map((ex: any) => ex.name || ex.Title)
-          );
+          if (planStep < questions.length - 1) {
+            addBotMessage(questions[planStep + 1]);
+            setPlanStep(planStep + 1);
+          } else {
+            addBotMessage(
+              "Generating your custom plan using our exercise database... 🏋️‍♂️",
+            );
+            const res = await fetch(PLAN_GEN_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updatedFormData),
+            });
+            // 1. Get names from AI response
+            const result = await res.json();
 
-          // 2. Remove duplicates
-          const uniqueNames = Array.from(new Set(allAiNames));
+            // 2. Create a "Local Library" lookup map from props for O(1) access
+            // This uses the 20 exercises already pulled in Dashboard
+            const localLibrary = new Map(
+              (availableExercises || []).map((ex) => [
+                StringHelper.clean(ex.Title),
+                ex,
+              ]),
+            );
 
-          // 3. One single query to get all full objects for these names
-          const { collection, query, where, getDocs } = await import("firebase/firestore");
+            const aiDays = result.plan.days;
+            const missingNames: string[] = [];
 
-          // Firestore "in" queries allow up to 30 items at once (perfect for a workout plan)
-          const q = query(
-            collection(db, "exercises"), 
-            where("Title", "in", uniqueNames) 
-          );
+            // 3. Preliminary check: what do we have locally vs what do we need?
+            aiDays.forEach((day: any) => {
+              day.exercises.forEach((aiEx: any) => {
+                const cleanName = StringHelper.clean(aiEx.name || aiEx.Title);
+                if (!localLibrary.has(cleanName)) {
+                  missingNames.push(aiEx.name || aiEx.Title);
+                }
+              });
+            });
 
-          const querySnapshot = await getDocs(q);
-          const foundExercises = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })) as Exercise[];
+            let fetchedExercises: Exercise[] = [];
 
-          // console.log(foundExercises)
-
-          // 4. Now map your enrichedDays using this "foundExercises" mini-library
-          const enrichedDays = result.plan.days.map((day: any) => ({
-            ...day,
-            exercises: day.exercises.map((aiEx: any) => {
-              const aiName = aiEx.name || aiEx.Title;
-              
-              // Use your StringHelper to find it in our mini-library
-              const fullData = foundExercises.find(libEx => 
-                StringHelper.isMatch(libEx.Title, aiName)
+            // 4. Only fetch from DB if the AI recommended something NOT in your top 20
+            if (missingNames.length > 0) {
+              const { collection, query, where, getDocs } =
+                await import("firebase/firestore");
+              // Firestore 'in' query supports up to 30 items
+              const q = query(
+                collection(db, "exercises"),
+                where("Title", "in", missingNames.slice(0, 30)),
               );
-
-              if (fullData) {
-                return { ...fullData, sets: aiEx.sets, reps: aiEx.reps };
-              }
-              return aiEx; // Fallback
-            })
-          }));
-
-          // 4. Update the plans array with the enriched data
-          const updatedPlans = allPlans.map(p => {
-            if (p.id === activePlan.id) {
-              return { 
-                ...p, 
-                days: enrichedDays 
-              };
+              const querySnapshot = await getDocs(q);
+              fetchedExercises = querySnapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+              })) as Exercise[];
             }
-            return p;
-          });
-          await setDoc(doc(db, "userPlans", user.uid), { 
-            plans: updatedPlans 
-          }, { merge: true });
 
-          addBotMessage(`Success! "${activePlan.name}" is now updated with full exercise details and videos.`);
-          setPlanStep(0);
+            // Update the Dashboard's state so these aren't fetched again!
+            if (fetchedExercises.length > 0 && onNewExercisesFound) {
+              onNewExercisesFound(fetchedExercises);
+            }
+
+            // 5. Build the final plan using Local Data FIRST, then Fetched Data
+            const enrichedDays = aiDays.map((day: any) => ({
+              ...day,
+              exercises: day.exercises.map((aiEx: any) => {
+                const aiName = aiEx.name || aiEx.Title;
+                const cleanAiName = StringHelper.clean(aiName);
+
+                // Try local 20 first, then try the newly fetched ones
+                const fullData =
+                  localLibrary.get(cleanAiName) ||
+                  fetchedExercises.find((f) =>
+                    StringHelper.isMatch(f.Title, aiName),
+                  );
+
+                if (fullData) {
+                  return { ...fullData, sets: aiEx.sets, reps: aiEx.reps };
+                }
+                return aiEx; // Fallback to raw AI data if still not found
+              }),
+            }));
+
+            // 6. Save to Firebase...
+            const updatedPlans = allPlans.map((p) => {
+              if (p.id === activePlan.id) return { ...p, days: enrichedDays };
+              return p;
+            });
+            await setDoc(
+              doc(db, "userPlans", user.uid),
+              { plans: updatedPlans },
+              { merge: true },
+            );
+
+            addBotMessage(
+              `Success! "${activePlan.name}" is now updated with full exercise details and videos.`,
+            );
+            setPlanStep(0);
+          }
         }
       }
+    } catch (err) {
+      addBotMessage(
+        "I'm sorry, I'm having trouble connecting to the server. Please try again.",
+      );
     }
-  } catch (err) { 
-    addBotMessage("I'm sorry, I'm having trouble connecting to the server. Please try again."); 
-  }
-};
+  };
 
   return (
     // Added h-[700px] and flex-col to keep it contained
@@ -412,31 +488,67 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
         </div>
         <div>
           <h3 className="text-lg font-bold">FitPro AI Coach</h3>
-          <p className="text-sm text-indigo-100">Your personalized fitness assistant</p>
+          <p className="text-sm text-indigo-100">
+            Your personalized fitness assistant
+          </p>
         </div>
         <div style={{ marginLeft: "auto", textAlign: "center" }}>
           <p className="text-xs mb-1">{toggled ? "Chat Mode" : "Plan Mode"}</p>
-          <div style={{ width: 80, height: 40, backgroundColor: "white", borderRadius: 20, padding: 5 }}>
-            <button style={{ width: "100%", height: "100%", background: "transparent", border: "none", cursor: "pointer" }}
-              onClick={() => setToggled((p) => !p)}>
-              <div style={{
-                width: 30, height: 30, borderRadius: 15, backgroundColor: toggled ? "#4f46e5" : "#9333ea",
-                transform: toggled ? "translateX(40px)" : "translateX(0px)", transition: "transform 0.25s ease"
-              }} />
+          <div
+            style={{
+              width: 80,
+              height: 40,
+              backgroundColor: "white",
+              borderRadius: 20,
+              padding: 5,
+            }}
+          >
+            <button
+              style={{
+                width: "100%",
+                height: "100%",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+              }}
+              onClick={() => setToggled((p) => !p)}
+            >
+              <div
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
+                  backgroundColor: toggled ? "#4f46e5" : "#9333ea",
+                  transform: toggled ? "translateX(40px)" : "translateX(0px)",
+                  transition: "transform 0.25s ease",
+                }}
+              />
             </button>
           </div>
         </div>
       </div>
 
       {/* This area is now flex-1 and overflow-y-auto to allow scrolling inside the fixed box */}
-      <div className={`flex-1 overflow-y-auto p-6 space-y-4 ${toggled ? "bg-gray-50" : "bg-indigo-50"}`}>
+      <div
+        className={`flex-1 overflow-y-auto p-6 space-y-4 ${toggled ? "bg-gray-50" : "bg-indigo-50"}`}
+      >
         {currentMessages.map((m, index) => (
-          <div key={`${m.id}-${index}`} className={`flex ${m.senderRole === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${m.senderRole === "user" ? (toggled ? "bg-indigo-600" : "bg-blue-600") + " text-white" : "bg-white shadow-md"}`}>
-              {m.senderRole === "bot" && <p className="text-xs text-gray-400 mb-1">{m.senderName}</p>}
+          <div
+            key={`${m.id}-${index}`}
+            className={`flex ${m.senderRole === "user" ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={`max-w-[80%] rounded-2xl px-4 py-3 ${m.senderRole === "user" ? (toggled ? "bg-indigo-600" : "bg-blue-600") + " text-white" : "bg-white shadow-md"}`}
+            >
+              {m.senderRole === "bot" && (
+                <p className="text-xs text-gray-400 mb-1">{m.senderName}</p>
+              )}
               <p className="text-sm whitespace-pre-line">{m.text}</p>
               <p className="text-[10px] mt-2 opacity-50">
-                {m.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {m.timestamp.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </p>
             </div>
           </div>
@@ -446,10 +558,17 @@ export function Chatbot({ userName, availableExercises }: ChatbotProps) {
 
       <div className="p-4 bg-white border-t shrink-0">
         <div className="flex gap-2">
-          <input value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+          <input
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
             placeholder={toggled ? "Ask me anything..." : "Update your plan..."}
-            className="flex-1 px-4 py-3 border rounded-full focus:ring-2 focus:ring-indigo-500" />
-          <button onClick={handleSendMessage} className="w-12 h-12 bg-indigo-600 text-white rounded-full flex items-center justify-center">
+            className="flex-1 px-4 py-3 border rounded-full focus:ring-2 focus:ring-indigo-500"
+          />
+          <button
+            onClick={handleSendMessage}
+            className="w-12 h-12 bg-indigo-600 text-white rounded-full flex items-center justify-center"
+          >
             <Send className="w-5 h-5" />
           </button>
         </div>
