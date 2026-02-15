@@ -63,7 +63,7 @@ const estimateRepTime = (reps: string | number | undefined | null): number => {
   if (!match) return 60; // default 60 seconds
 
   const repCount = parseInt(match[1], 10);
-  return Math.max(repCount * 3, 30); // 3 sec/rep, ขั้นต่ำ 30 วิ
+  return Math.max(repCount * 0, 0); // 3 sec/rep, ขั้นต่ำ 30 วิ
 };
 
 

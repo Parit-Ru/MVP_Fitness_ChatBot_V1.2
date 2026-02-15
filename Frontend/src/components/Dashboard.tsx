@@ -10,6 +10,8 @@ import { ExerciseDetail } from "./ExerciseDetail";
 import { PlanDetail } from './PlanDetail';
 import { doc, collection, query, setDoc, serverTimestamp, onSnapshot, limit } from "firebase/firestore";
 import { db } from "../firebase";
+import { Settings } from 'lucide-react'; // 1. เพิ่มไอคอน Settings
+import { SettingsPage } from './SettingsPage'; // 2. นำเข้าไฟล์ที่จะสร้างใหม่
 
 interface DashboardProps {
   user: { name: string; email: string; uid: string };
@@ -26,7 +28,7 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [selectedPlanName, setSelectedPlanName] = useState<string>("");
 
-  const [view, setView] = useState<'chat' | 'plans' | 'profile' | 'workouts' | 'exercise'>('chat');
+  const [view, setView] = useState<'chat' | 'plans' | 'profile' | 'workouts' | 'exercise' | 'settings'>('chat');
   const [completedWorkouts, setCompletedWorkouts] = useState<WorkoutStreak[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -188,6 +190,17 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
                 Workouts
               </button>
 
+              <button
+                onClick={() => { setView('settings'); setSelectedPlanId(null); }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${view === 'settings'
+                  ? 'bg-indigo-600 text-white shadow-lg'
+                  : 'text-gray-700 hover:bg-white/60'
+                  }`}
+              >
+                <Settings className="w-5 h-5" />
+                Settings
+              </button>
+
               <div className="w-px h-8 bg-gray-300 mx-2"></div>
 
               <button
@@ -216,7 +229,7 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
               <MobileItem label="My Plans" onClick={() => { setView('plans'); setMobileMenuOpen(false); }} />
               <MobileItem label="Profile" onClick={() => { setView('profile'); setMobileMenuOpen(false); }} />
               <MobileItem label="Workouts" onClick={() => { setView('workouts'); setMobileMenuOpen(false); }} />
-
+              <MobileItem label="Settings" onClick={() => { setView('settings'); setMobileMenuOpen(false); }} />
               <div className="border-t my-2" />
 
               <MobileItem label="Logout" danger onClick={onLogout} />
@@ -231,6 +244,10 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
               <div className="w-full max-w-4xl h-[calc(100vh-140px)] bg-white rounded-2xl shadow-xl flex flex-col">
                 <Chatbot userName={user.name} availableExercises={exerciseLibrary} />
               </div>
+            </div>
+          ) : view === 'settings' ? (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+              <SettingsPage user={user} onLogout={onLogout} />
             </div>
           ) : view === 'plans' ? (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
