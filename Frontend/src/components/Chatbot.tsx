@@ -182,29 +182,51 @@ export function Chatbot({
     return () => unsub();
   }, [user]);
 
+  // Frontend/src/components/Chatbot.tsx
+
   useEffect(() => {
     let modeText = "";
+
+    // --- ส่วนที่เพิ่มเพื่อรีเซตค่าเมื่อสลับโหมด ---
+    setPlanStep(0);
+    setFormData({ age: "", weight: "", height: "", goal: "", injury: "", time: "", daysPerWeek: "", pref: "" });
+    // ---------------------------------------
+
     if (toggled) {
-      modeText = "Switched to Chat Mode.";
+        modeText = "Switched to Chat Mode.";
     } else if (activePlan.days && activePlan.days.length > 0) {
-      modeText = `Your plan is already created please switch to a blank plan!".`;
-      setTimeout(() => {
-        setToggled(true); // สลับกลับไปหน้า Chat อัตโนมัติใน 5 วินาที
-      }, 5000);
-    } else {
-      if (!activePlan) {
-        modeText = "⚠️ Set an active plan first.";
-      } else if (activePlan.days && activePlan.days.length > 0) {
         modeText = `Your plan is already created please switch to a blank plan!".`;
         setTimeout(() => {
-          setToggled(true);
+            setToggled(true); 
         }, 5000);
-      } else {
-        modeText = `Plan Mode: Filling "${activePlan.name}". ${questions[0]}`;
-      }
+    } else {
+        if (!activePlan) {
+            modeText = "⚠️ Set an active plan first.";
+        } else if (activePlan.days && activePlan.days.length > 0) {
+            modeText = `Your plan is already created please switch to a blank plan!".`;
+            setTimeout(() => {
+                setToggled(true);
+            }, 5000);
+        } else {
+            modeText = `Plan Mode: Filling "${activePlan.name}". ${questions[0]}`;
+        }
     }
-    addSystemMessage(modeText);
-  }, [toggled]);
+
+    setCurrentMessages(prev => {
+        const filteredMessages = prev.filter(m => m.senderRole !== "system");
+        return [
+            ...filteredMessages,
+            {
+                id: `system-${Date.now()}`,
+                text: modeText,
+                senderRole: "system",
+                senderId: "system",
+                senderName: "System",
+                timestamp: new Date(),
+            }
+        ];
+    });
+}, [toggled]);
 
   const addBotMessage = (text: string) => {
     setCurrentMessages((prev) => {
@@ -250,19 +272,25 @@ export function Chatbot({
     await setDoc(
       doc(db, "chats", user.uid),
       {
-        chatMessages: chatMsgs.map((m) => ({
-          ...m,
-          timestamp: m.timestamp.getTime(),
-        })),
-        planMessages: planMsgs.map((m) => ({
-          ...m,
-          timestamp: m.timestamp.getTime(),
-        })),
+        // กรองเฉพาะข้อความที่ไม่ใช่ system ก่อนทำการ map เพื่อ save ลง db
+        chatMessages: chatMsgs
+          .filter((m) => m.senderRole !== "system")
+          .map((m) => ({
+            ...m,
+            timestamp: m.timestamp.getTime(),
+          })),
+        planMessages: planMsgs
+          .filter((m) => m.senderRole !== "system")
+          .map((m) => ({
+            ...m,
+            timestamp: m.timestamp.getTime(),
+          })),
         updatedAt: serverTimestamp(),
       },
       { merge: true },
     );
-  }; // new
+  };
+
   const handleSendMessage = async () => {
     if (loading || !user || !inputText.trim()) return;
 
