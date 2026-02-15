@@ -1,141 +1,252 @@
-import React from 'react';
-import { auth, db } from "../firebase";
+import React from "react";
+import { auth } from "../firebase";
 import { deleteUser } from "firebase/auth";
-import { doc, deleteDoc } from "firebase/firestore";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { AlertTriangle, Trash2, MessageSquareX, ClipboardX } from 'lucide-react';
-import { deleteUserData, clearChatMessages, clearPlanMessages } from "../services/userService";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import {
+  MessageSquare,
+  AlertTriangle,
+  Trash2,
+  Settings as SettingsIcon,
+  Mail,
+  Database,
+} from "lucide-react";
+import {
+  deleteUserData,
+  clearChatMessages,
+  clearPlanMessages,
+} from "../services/userService";
 
 interface SettingsPageProps {
-    user: { uid: string; email: string };
-    onLogout: () => void;
+  user: { uid: string; email: string };
+  onLogout: () => void;
 }
 
 export function SettingsPage({ user, onLogout }: SettingsPageProps) {
+  const handleClearChat = async () => {
+    if (window.confirm("คุณต้องการลบประวัติการแชททั้งหมดใช่หรือไม่?")) {
+      try {
+        await clearChatMessages(user.uid);
+        alert("ลบประวัติการแชทเรียบร้อยแล้ว");
+      } catch (error) {
+        alert("เกิดข้อผิดพลาดในการลบแชท");
+      }
+    }
+  };
 
-    const handleClearChat = async () => {
-        if (window.confirm("คุณต้องการลบประวัติการแชททั้งหมดใช่หรือไม่?")) {
-            try {
-                await clearChatMessages(user.uid);
-                alert("ลบประวัติการแชทเรียบร้อยแล้ว");
-            } catch (error) {
-                alert("เกิดข้อผิดพลาดในการลบแชท");
-            }
-        }
-    };
+  const handleClearPlanMessages = async () => {
+    if (window.confirm("คุณต้องการลบข้อความแผนงานทั้งหมดใช่หรือไม่?")) {
+      try {
+        await clearPlanMessages(user.uid);
+        alert("ลบข้อความแผนงานเรียบร้อยแล้ว");
+      } catch (error) {
+        alert("เกิดข้อผิดพลาดในการลบข้อความแผนงาน");
+      }
+    }
+  };
 
-    const handleClearPlanMessages = async () => {
-        if (window.confirm("คุณต้องการลบข้อความแผนงานทั้งหมดใช่หรือไม่?")) {
-            try {
-                await clearPlanMessages(user.uid);
-                alert("ลบข้อความแผนงานเรียบร้อยแล้ว");
-            } catch (error) {
-                alert("เกิดข้อผิดพลาดในการลบข้อความแผนงาน");
-            }
-        }
-    };
-
-    // Frontend/src/components/SettingsPage.tsx
-    const handleDeleteAccount = async () => {
-        // 1. ถามเพื่อความแน่ใจรอบแรก
-        const confirmFirst = window.confirm("คุณแน่ใจหรือไม่ที่จะลบบัญชี? การดำเนินการนี้ไม่สามารถย้อนกลับได้");
-        if (!confirmFirst) return;
-
-        // 2. บังคับให้พิมพ์ข้อความยืนยัน (ทำให้ลบยากขึ้นและต้องตั้งใจจริงๆ)
-        const userInput = window.prompt("พิมพ์คำว่า 'DELETE' เพื่อยืนยันการลบบัญชีของคุณ:");
-
-        if (userInput !== 'DELETE') {
-            alert("คำยืนยันไม่ถูกต้อง การลบบัญชีถูกยกเลิก");
-            return;
-        }
-
-        try {
-            const currentUser = auth.currentUser;
-            if (!currentUser) return;
-
-            console.log("Starting deletion process...");
-
-            // 1. ลบข้อมูลใน Firestore
-            await deleteUserData(currentUser.uid);
-            console.log("Database deleted!");
-
-            // 2. ลบบัญชี Authentication
-            await deleteUser(currentUser);
-            console.log("Auth account deleted!");
-
-            alert("ลบบัญชีและข้อมูลทั้งหมดเรียบร้อยแล้ว");
-            onLogout();
-        } catch (error: any) {
-            console.error("Error during deletion:", error.code);
-
-            // กรณีล็อกอินไว้นานเกินไปจน Firebase ไม่อนุญาตให้ลบ (Security Policy)
-            if (error.code === 'auth/requires-recent-login') {
-                alert("เพื่อความปลอดภัย กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่อีกครั้งก่อนทำการลบบัญชี");
-            } else {
-                alert("เกิดข้อผิดพลาด: " + error.message);
-            }
-        }
-    };
-
-    return (
-        <div className="max-w-2xl mx-auto space-y-6 p-4">
-            <h2 className="text-3xl font-bold text-gray-800">Settings</h2>
-
-            <Card className="border-indigo-100 shadow-sm overflow-hidden">
-                <CardHeader className="bg-indigo-50/30 border-b border-indigo-50">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <MessageSquareX className="w-5 h-5 text-indigo-600" />
-                        จัดการข้อมูลแชท
-                    </CardTitle>
-                    <CardDescription>ลบเฉพาะข้อความภายในแชทโดยไม่ลบบัญชี</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-4">
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <span className="text-sm font-medium">ประวัติการแชท (AI Chat)</span>
-                        <Button variant="outline" size="sm" onClick={handleClearChat} className="text-indigo-600 border-indigo-200 hover:bg-indigo-50">
-                            ล้างแชท
-                        </Button>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <span className="text-sm font-medium">ข้อความแผนงาน (Plan Messages)</span>
-                        <Button variant="outline" size="sm" onClick={handleClearPlanMessages} className="text-indigo-600 border-indigo-200 hover:bg-indigo-50">
-                            ล้างข้อความแผน
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card className="border-red-100 shadow-sm overflow-hidden">
-                <CardHeader className="bg-red-50/50 border-b border-red-100">
-                    <div className="flex items-center gap-2 text-red-600">
-                        <AlertTriangle className="w-5 h-5" />
-                        <CardTitle className="text-lg">Danger Zone</CardTitle>
-                    </div>
-                    <CardDescription className="text-red-700/70">
-                        การดำเนินการนี้ไม่สามารถย้อนกลับได้ ข้อมูลทั้งหมดจะถูกลบถาวร
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                    <div className="flex flex-col gap-4">
-                        {/* แก้ไขส่วนนี้ใน SettingsPage.tsx */}
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-white rounded-xl border border-red-50 shadow-sm gap-4">
-                            <div className="flex-1 min-w-0">
-                                <p className="font-bold text-gray-900 break-words">ลบบัญชีผู้ใช้</p>
-                                <p className="text-sm text-gray-500 truncate">{user.email}</p>
-                            </div>
-
-                            <Button
-                                onClick={handleDeleteAccount}
-                                className="w-full sm:w-auto bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 shadow-none px-6 font-bold transition-all active:scale-95 whitespace-nowrap"
-                            >
-                                <Trash2 className="w-4 h-4 mr-2 flex-shrink-0" />
-                                Delete Account
-                            </Button>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+  const handleDeleteAccount = async () => {
+    const confirmFirst = window.confirm(
+      "คุณแน่ใจหรือไม่ที่จะลบบัญชี? การดำเนินการนี้ไม่สามารถย้อนกลับได้",
     );
+    if (!confirmFirst) return;
+
+    const userInput = window.prompt(
+      "พิมพ์คำว่า 'DELETE' เพื่อยืนยันการลบบัญชีของคุณ:",
+    );
+
+    if (userInput !== "DELETE") {
+      alert("คำยืนยันไม่ถูกต้อง การลบบัญชีถูกยกเลิก");
+      return;
+    }
+
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+
+      await deleteUserData(currentUser.uid);
+      await deleteUser(currentUser);
+
+      alert("ลบบัญชีและข้อมูลทั้งหมดเรียบร้อยแล้ว");
+      onLogout();
+    } catch (error: any) {
+      if (error.code === "auth/requires-recent-login") {
+        alert(
+          "เพื่อความปลอดภัย กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่อีกครั้งก่อนทำการลบบัญชี",
+        );
+      } else {
+        alert("เกิดข้อผิดพลาด: " + error.message);
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-600 rounded-lg">
+              <SettingsIcon className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold text-gray-900">Settings</h1>
+          </div>
+          <p className="text-gray-600 ml-14">
+            Manage your account preferences and data
+          </p>
+        </div>
+
+        {/* Account Info Card */}
+        <Card className="border-slate-200 shadow-lg bg-white/80 backdrop-blur-sm">
+          <CardHeader
+            className="border-b bg-gradient-to-r from-slate-50 to-transparent"
+            style={{ paddingTop: 10, paddingBottom: 10 }}
+          >
+            <div className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-indigo-600" />
+              <CardTitle className="text-xl">Account Information</CardTitle>
+            </div>
+            <CardDescription>Your current account details</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6" style={{ paddingBottom: 20 }}>
+            <div className="flex items-center gap-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 min-w-0">
+              <div className="p-3 bg-indigo-600 rounded-full">
+                <Mail className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-gray-500 font-medium">
+                  Email Address
+                </p>
+                <p className="text-lg font-semibold text-gray-900 truncate">
+                  {user.email}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Management Card */}
+        <Card className="border-indigo-200 shadow-lg bg-white/80 backdrop-blur-sm overflow-hidden">
+          <CardHeader
+            className="bg-gradient-to-r from-indigo-50 to-transparent border-b border-indigo-100"
+            style={{ paddingTop: 10, paddingBottom: 10 }}
+          >
+            <div className="flex items-center gap-2">
+              <Database className="w-5 h-5 text-indigo-600" />
+              <CardTitle className="text-xl">Data Management</CardTitle>
+            </div>
+            <CardDescription>
+              Clear your chat data without deleting your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4" style={{ paddingBottom: 20 }}>
+            <div className="group hover:shadow-md transition-all duration-200 rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/50">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 gap-4">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="p-2 bg-indigo-100 rounded-lg group-hover:bg-indigo-200 transition-colors">
+                    <MessageSquare className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      AI Chat History
+                    </p>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Remove all conversation history with AI
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearChat}
+                  className="sm:w-auto text-indigo-600 border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400 font-semibold transition-all shadow-sm"
+                >
+                  Clear Chat
+                </Button>
+              </div>
+            </div>
+
+            <div className="group hover:shadow-md transition-all duration-200 rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/50">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 gap-4">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="p-2 bg-indigo-100 rounded-lg group-hover:bg-indigo-200 transition-colors">
+                    <MessageSquare className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">Plan Messages</p>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Delete all messages related to your plans
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearPlanMessages}
+                  className="sm:w-auto text-indigo-600 border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400 font-semibold transition-all shadow-sm"
+                >
+                  Clear Messages
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Danger Zone Card */}
+        <Card className="border-red-200 shadow-lg bg-white/80 backdrop-blur-sm overflow-hidden">
+          <CardHeader
+            className="bg-gradient-to-r from-red-50 to-transparent border-b border-red-100"
+            style={{ paddingTop: 10, paddingBottom: 10 }}
+          >
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              <CardTitle className="text-xl">Danger Zone</CardTitle>
+            </div>
+            <CardDescription className="text-red-700/80">
+              These actions are permanent and cannot be undone. All data will be
+              permanently deleted.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6" style={{ paddingBottom: 20 }}>
+            <div className="group hover:shadow-md transition-all duration-200 rounded-xl border-2 border-red-100 bg-gradient-to-br from-white to-red-50/30">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 gap-4">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="p-2 bg-red-100 rounded-lg group-hover:bg-red-200 transition-colors">
+                    <Trash2 className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-gray-900">Delete Account</p>
+                    <p className="text-sm text-gray-600 mt-0.5 break-all">
+                      {user.email}
+                    </p>
+                    <p className="text-xs text-red-600 mt-1.5 font-medium">
+                      ⚠️ This will permanently delete all your data
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleDeleteAccount}
+                  className="sm:w-auto bg-red-600 hover:bg-red-700 text-white border-0 shadow-md font-bold transition-all active:scale-95 whitespace-nowrap"
+                >
+                  <Trash2 className="w-4 h-4 mr-2 flex-shrink-0" />
+                  Delete Account
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Footer Info */}
+        <div className="text-center py-4 text-sm text-gray-500">
+          <p>Need help? Contact our support team for assistance.</p>
+        </div>
+      </div>
+    </div>
+  );
 }
