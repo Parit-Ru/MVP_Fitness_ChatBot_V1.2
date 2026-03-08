@@ -1,140 +1,24 @@
-# Chat Bot with Authentication
+Project Overview
 
-This is a code bundle for Chat Bot with Authentication. The original project is available at https://www.figma.com/design/V57SPVE4ZzLj3haBMnj667/Chat-Bot-with-Authentication.
+MVP Fitness ChatBot V1.2 is a simple chatbot application designed to provide basic fitness guidance and workout recommendations.
+This project was developed as part of a university course to demonstrate the concept of building a Minimum Viable Product (MVP) using chatbot technology.
 
-## Running the code
+The chatbot allows users to interact through text and receive suggestions related to exercise, workouts, and general fitness information.
 
-Run `npm i` to install the dependencies.
+Objectives
 
-Run `npm run dev` to start the development server.
+The objectives of this project are:
+To design and develop a simple chatbot for fitness assistance
+To apply programming and AI concepts learned in class
+To demonstrate how a chatbot can be used to support users in planning workouts
+To build a Minimum Viable Product (MVP) for a fitness-related application
 
-## Backend Running the code
+Features
 
-Run `npm i` to install the dependencies.
+Chat-based interaction with the user
+Basic workout recommendations
+Fitness-related information and guidance
+imple chatbot logic for responding to user input
 
-Run `node server.js` to open server
-
-```
-MVP_Fitness_ChatBot_V1.2
-├─ Backend
-│  ├─ .env
-│  ├─ data
-│  │  └─ Exe.json
-│  ├─ package-lock.json
-│  ├─ package.json
-│  ├─ routes
-│  │  └─ ai.js
-│  └─ server.js
-├─ Frontend
-│  ├─ .env
-│  ├─ build
-│  │  ├─ assets
-│  │  │  ├─ index-CNomaQlj.css
-│  │  │  └─ index-CVwTmMS-.js
-│  │  └─ index.html
-│  ├─ dist
-│  │  ├─ assets
-│  │  │  ├─ index-BhjYWUQK.js
-│  │  │  └─ index-CNomaQlj.css
-│  │  └─ index.html
-│  ├─ index.html
-│  ├─ package-lock.json
-│  ├─ package.json
-│  ├─ src
-│  │  ├─ App.tsx
-│  │  ├─ Attributions.md
-│  │  ├─ components
-│  │  │  ├─ AuthContext.tsx
-│  │  │  ├─ AuthPage.tsx
-│  │  │  ├─ Chatbot.tsx
-│  │  │  ├─ Dashboard.tsx
-│  │  │  ├─ EditExerciseModal.tsx
-│  │  │  ├─ ExerciseDetail.tsx
-│  │  │  ├─ ExerciseDetailModal.tsx
-│  │  │  ├─ ExercisePlans.tsx
-│  │  │  ├─ figma
-│  │  │  │  └─ ImageWithFallback.tsx
-│  │  │  ├─ ProfilePage.tsx
-│  │  │  ├─ ui
-│  │  │  │  ├─ accordion.tsx
-│  │  │  │  ├─ alert-dialog.tsx
-│  │  │  │  ├─ alert.tsx
-│  │  │  │  ├─ aspect-ratio.tsx
-│  │  │  │  ├─ avatar.tsx
-│  │  │  │  ├─ badge.tsx
-│  │  │  │  ├─ breadcrumb.tsx
-│  │  │  │  ├─ button.tsx
-│  │  │  │  ├─ calendar.tsx
-│  │  │  │  ├─ card.tsx
-│  │  │  │  ├─ carousel.tsx
-│  │  │  │  ├─ chart.tsx
-│  │  │  │  ├─ checkbox.tsx
-│  │  │  │  ├─ collapsible.tsx
-│  │  │  │  ├─ command.tsx
-│  │  │  │  ├─ context-menu.tsx
-│  │  │  │  ├─ dialog.tsx
-│  │  │  │  ├─ drawer.tsx
-│  │  │  │  ├─ dropdown-menu.tsx
-│  │  │  │  ├─ form.tsx
-│  │  │  │  ├─ hover-card.tsx
-│  │  │  │  ├─ input-otp.tsx
-│  │  │  │  ├─ input.tsx
-│  │  │  │  ├─ label.tsx
-│  │  │  │  ├─ menubar.tsx
-│  │  │  │  ├─ navigation-menu.tsx
-│  │  │  │  ├─ pagination.tsx
-│  │  │  │  ├─ popover.tsx
-│  │  │  │  ├─ progress.tsx
-│  │  │  │  ├─ radio-group.tsx
-│  │  │  │  ├─ resizable.tsx
-│  │  │  │  ├─ scroll-area.tsx
-│  │  │  │  ├─ select.tsx
-│  │  │  │  ├─ separator.tsx
-│  │  │  │  ├─ sheet.tsx
-│  │  │  │  ├─ sidebar.tsx
-│  │  │  │  ├─ skeleton.tsx
-│  │  │  │  ├─ slider.tsx
-│  │  │  │  ├─ sonner.tsx
-│  │  │  │  ├─ switch.tsx
-│  │  │  │  ├─ table.tsx
-│  │  │  │  ├─ tabs.tsx
-│  │  │  │  ├─ textarea.tsx
-│  │  │  │  ├─ toggle-group.tsx
-│  │  │  │  ├─ toggle.tsx
-│  │  │  │  ├─ tooltip.tsx
-│  │  │  │  ├─ use-mobile.ts
-│  │  │  │  └─ utils.ts
-│  │  │  ├─ VerifyEmail.tsx
-│  │  │  └─ WorkoutLibrary.tsx
-│  │  ├─ firebase.ts
-│  │  ├─ guidelines
-│  │  │  └─ Guidelines.md
-│  │  ├─ hooks
-│  │  │  └─ useAuth.ts
-│  │  ├─ index.css
-│  │  ├─ main.tsx
-│  │  ├─ pages
-│  │  │  └─ Dashboard.tsx
-│  │  ├─ services
-│  │  │  ├─ exerciseService.ts
-│  │  │  ├─ planService.ts
-│  │  │  └─ userService.ts
-│  │  ├─ styles
-│  │  │  └─ globals.css
-│  │  └─ vite-env.d.ts
-│  └─ vite.config.ts
-├─ package-lock.json
-├─ README.md
-├─ scripts
-│  ├─ generate_vectors.js
-│  ├─ package-lock.json
-│  ├─ package.json
-│  └─ ReadME.txt
-└─ upload
-   ├─ .env
-   ├─ exercises.json
-   ├─ package-lock.json
-   ├─ package.json
-   └─ upload.js
-
-```
+This project was created for educational purposes as part of a university course.
+It focuses on learning the development process of a chatbot-based application and implementing an MVP concept.
