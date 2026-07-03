@@ -13,6 +13,7 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
     "https://parit-iii.github.io",
+    "https://parit-Ru.github.io",
     "http://localhost:3000"
   ]
 }));
