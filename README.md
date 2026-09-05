@@ -27,9 +27,9 @@ It focuses on learning the development process of a chatbot-based application an
 
 Once you clone this project you need to
 Install dependencies both Frontend/Backend
-`npm install`
+`npm install`  
 you can run backend by go in Backend/ and run
-`npm run dev`
+`npm run dev`  
 you can run frontend by go in Frontend/ and run
 `num run dev`
 
@@ -59,4 +59,4 @@ GROQ_API_KEY = your-api-key-here
 
 ## View demo here
 this is a live demo website using Render(might slow on start up)
-[MVP_Fitness_ChatBot] (https://parit-ru.github.io/MVP_Fitness_ChatBot_V1.2/)
+[MVP_Fitness_ChatBot](https://parit-ru.github.io/MVP_Fitness_ChatBot_V1.2/)
