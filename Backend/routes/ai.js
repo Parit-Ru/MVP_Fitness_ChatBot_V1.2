@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import axios from "axios";
-import similarity from 'compute-cosine-similarity';
+import similarity from "compute-cosine-similarity";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -9,10 +9,9 @@ import { fileURLToPath } from "url";
 console.log("✅ ai.js loaded");
 //console.log("GROQ_API_KEY =", process.env.GROQ_API_KEY);
 
-
 const router = express.Router();
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "llama-3.1-8b-instant";
+const MODEL = "gpt-oss-120b";
 
 const HF_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
 const HF_API_URL = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}/pipeline/feature-extraction`;
@@ -24,14 +23,14 @@ const groq = async (messages, max_tokens = 900) => {
       model: MODEL,
       messages,
       temperature: 0.7,
-      max_tokens
+      max_tokens,
     },
     {
       headers: {
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      }
-    }
+        "Content-Type": "application/json",
+      },
+    },
   );
 
   return res.data.choices[0].message.content;
@@ -43,21 +42,20 @@ const embedText = async (text) => {
       HF_API_URL,
       {
         inputs: text,
-        options: { wait_for_model: true }
+        options: { wait_for_model: true },
       },
       {
         headers: {
           Authorization: `Bearer ${process.env.HUGGINGFACE_TOKEN}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
-    // ✅ FIX: Extract the vector properly. 
+    // ✅ FIX: Extract the vector properly.
     // Hugging Face often returns [[0.1, 0.2...]] for this model.
     const result = response.data;
     return Array.isArray(result[0]) ? result[0] : result;
-
   } catch (err) {
     console.error("❌ EMBEDDING ERROR:", err.response?.data || err.message);
     throw err;
@@ -69,22 +67,27 @@ const __dirname = path.dirname(__filename);
 const exercisesPath = path.join(__dirname, "../data/Exe.json"); // Adjust path if needed
 const exercisesData = JSON.parse(fs.readFileSync(exercisesPath, "utf8"));
 
-const findSimilarExercisesLocal = async (queryVector, limit = 5, avoidPart = "None") => {
+const findSimilarExercisesLocal = async (
+  queryVector,
+  limit = 5,
+  avoidPart = "None",
+) => {
   return exercisesData
-    .filter(ex => {
+    .filter((ex) => {
       // 1. ตรวจสอบว่ามี vector หรือไม่
       const hasVector = ex.embedding && Array.isArray(ex.embedding);
 
       // 2. ตรวจสอบว่าไม่ใช่ส่วนที่ต้องเลี่ยง (Case-insensitive)
       // ถ้า avoidPart เป็น "None" จะให้ผ่านหมด แต่ถ้ามีระบุ จะต้องไม่ตรงกับ BodyPart ของท่า
-      const isSafe = avoidPart === "None" ||
+      const isSafe =
+        avoidPart === "None" ||
         ex.BodyPart.toLowerCase() !== avoidPart.toLowerCase();
 
       return hasVector && isSafe;
     })
-    .map(ex => ({
+    .map((ex) => ({
       ...ex,
-      score: similarity(queryVector, ex.embedding) || 0
+      score: similarity(queryVector, ex.embedding) || 0,
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
@@ -98,7 +101,8 @@ const findSimilarExercisesLocal = async (queryVector, limit = 5, avoidPart = "No
 /* ========================= */
 router.post("/plan", async (req, res) => {
   console.log("📩 /plan called");
-  const { age, weight, height, goal, injury, time, pref, daysPerWeek } = req.body;
+  const { age, weight, height, goal, injury, time, pref, daysPerWeek } =
+    req.body;
 
   try {
     // --- ส่วนเดิมของคุณทั้งหมด (ห้ามแก้) ---
@@ -116,16 +120,23 @@ router.post("/plan", async (req, res) => {
 
     const avoidPart = await groq([
       { role: "system", content: "You are a fitness expert." },
-      { role: "user", content: analysisPrompt }
+      { role: "user", content: analysisPrompt },
     ]);
     console.log(`🚫 AI decided to avoid: ${avoidPart}`);
 
     const userVector = await embedText(`${goal} ${pref}`);
-    const topExercises = await findSimilarExercisesLocal(userVector, 7, avoidPart.trim());
+    const topExercises = await findSimilarExercisesLocal(
+      userVector,
+      7,
+      avoidPart.trim(),
+    );
     const totalDays = Math.min(Math.max(parseInt(daysPerWeek) || 3, 1), 7);
-    const contextText = topExercises.map(ex =>
-      `---\nExercise: ${ex.Title}\nFocus: ${ex.BodyPart}\nDescription: ${ex.Desc}`
-    ).join("\n\n");
+    const contextText = topExercises
+      .map(
+        (ex) =>
+          `---\nExercise: ${ex.Title}\nFocus: ${ex.BodyPart}\nDescription: ${ex.Desc}`,
+      )
+      .join("\n\n");
 
     const prompt = `
   You are a professional personal trainer.
@@ -168,18 +179,20 @@ router.post("/plan", async (req, res) => {
 
     const content = await groq([
       { role: "system", content: "คุณเป็นเทรนเนอร์ฟิตเนสระดับมืออาชีพ" },
-      { role: "user", content: prompt }
+      { role: "user", content: prompt },
     ]);
 
     const cleanJson = content.replace(/```json|```/g, "").trim();
     const plan = JSON.parse(cleanJson);
 
     // ✅ ส่วนที่เพิ่มตามสั่ง: Mapping ข้อมูลจาก Exe.json เข้าไปใน plan
-    plan.days = plan.days.map(day => ({
+    plan.days = plan.days.map((day) => ({
       ...day,
-      exercises: day.exercises.map(aiEx => {
+      exercises: day.exercises.map((aiEx) => {
         // หาข้อมูลจากไฟล์ Exe.json (ที่โหลดไว้ใน exercisesData)
-        const masterData = exercisesData.find(ex => ex.Title.toLowerCase() === aiEx.name.toLowerCase());
+        const masterData = exercisesData.find(
+          (ex) => ex.Title.toLowerCase() === aiEx.name.toLowerCase(),
+        );
 
         if (masterData) {
           return {
@@ -188,16 +201,15 @@ router.post("/plan", async (req, res) => {
             desc: masterData.Desc,
             equipment: masterData.Equipment,
             level: masterData.Level,
-            type: masterData.Type
+            type: masterData.Type,
           };
         }
         return aiEx;
-      })
+      }),
     }));
 
     // ส่งผลลัพธ์กลับ (โครงสร้างเดิมแต่ข้อมูลใน exercises เยอะขึ้น)
     res.json({ plan });
-
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: "Plan generation failed" });
@@ -214,10 +226,11 @@ router.post("/chat", async (req, res) => {
   console.log("MESSAGES:", messages);
 
   try {
-    const reply = await groq([
-      {
-        role: "system",
-        content: `
+    const reply = await groq(
+      [
+        {
+          role: "system",
+          content: `
 You are FitPro AI Coach, a friendly and professional fitness assistant.
 
 Rules:
@@ -227,22 +240,20 @@ Rules:
 - Give short, practical advice (no essays)
 - Be conversational and motivating
 - Do NOT restart the conversation
-`
-      },
-      ...(messages || [])
-    ], 300);
+`,
+        },
+        ...(messages || []),
+      ],
+      300,
+    );
 
     res.json({ reply });
-
   } catch (err) {
     console.error("❌ GROQ CHAT ERROR");
     console.error(err.response?.data || err.message);
     res.status(500).json({ error: "Chat failed" });
   }
 });
-
-
-
 
 /* ========================= */
 /* ===== UPDATE PLAN ======= */
@@ -253,28 +264,29 @@ Rules:
 router.post("/update-plan", async (req, res) => {
   const { currentPlan, instruction } = req.body;
 
-try {
-  const intentCheck = await groq([
-      { 
-        role: "system", 
+  try {
+    const intentCheck = await groq([
+      {
+        role: "system",
         content: `You are a filter. Determine if the user's input is a request to modify, add, remove, or change a workout plan.
-         Respond with ONLY 'true' or 'false'.` 
+         Respond with ONLY 'true' or 'false'.`,
       },
-      { role: "user", content: `Instruction: "${instruction}"` }
+      { role: "user", content: `Instruction: "${instruction}"` },
     ]);
 
-    console.log(intentCheck)
+    console.log(intentCheck);
     const isWorkoutRelated = /true/i.test(intentCheck);
-    console.log(isWorkoutRelated)
+    console.log(isWorkoutRelated);
 
     if (!isWorkoutRelated) {
-      return res.status(400).json({ 
-        error: "Off-topic instruction", 
-        message: "It looks like you're asking about something else. Please provide instructions related to your workout plan." 
+      return res.status(400).json({
+        error: "Off-topic instruction",
+        message:
+          "It looks like you're asking about something else. Please provide instructions related to your workout plan.",
       });
     }
 
-  const prompt = `
+    const prompt = `
 You are updating a workout plan.
 You are a professional personal trainer.
 STRICT RULES:
@@ -309,18 +321,20 @@ OUTPUT FORMAT EXACTLY:
 
     const content = await groq([
       { role: "system", content: "Workout plan editor (JSON only)" },
-      { role: "user", content: prompt }
+      { role: "user", content: prompt },
     ]);
 
     const cleanJson = content.replace(/```json|```/g, "").trim();
     const plan = JSON.parse(cleanJson);
 
     // ✅ เพิ่มเฉพาะส่วนที่ดึงข้อมูล Master มาแปะ (ไม่ยุ่งกับ Prompt)
-    plan.days = plan.days.map(day => ({
+    plan.days = plan.days.map((day) => ({
       ...day,
-      exercises: day.exercises.map(aiEx => {
+      exercises: day.exercises.map((aiEx) => {
         // หาข้อมูลจากไฟล์ Exe.json (ที่โหลดไว้ใน exercisesData)
-        const masterData = exercisesData.find(ex => ex.Title.toLowerCase() === aiEx.name.toLowerCase());
+        const masterData = exercisesData.find(
+          (ex) => ex.Title.toLowerCase() === aiEx.name.toLowerCase(),
+        );
 
         if (masterData) {
           return {
@@ -329,11 +343,11 @@ OUTPUT FORMAT EXACTLY:
             desc: masterData.Desc,
             equipment: masterData.Equipment,
             level: masterData.Level,
-            type: masterData.Type
+            type: masterData.Type,
           };
         }
         return aiEx;
-      })
+      }),
     }));
 
     res.json({ plan });
@@ -342,6 +356,5 @@ OUTPUT FORMAT EXACTLY:
     res.status(500).json({ error: "Update failed" });
   }
 });
-
 
 export default router;
