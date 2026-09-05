@@ -11,7 +11,7 @@ console.log("✅ ai.js loaded");
 
 const router = express.Router();
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "gpt-oss-120b";
+const MODEL = "openai/gpt-oss-120b";
 
 const HF_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
 const HF_API_URL = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}/pipeline/feature-extraction`;
